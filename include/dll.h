@@ -1,0 +1,1 @@
+#define HI_API __declspec(dllexport)
