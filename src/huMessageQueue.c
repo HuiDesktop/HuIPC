@@ -79,7 +79,7 @@ HI_API hiMQInstance* hiMQ_open(void* ptr, uint32_t size) {
 		return NULL;
 	}
 	inst->ev = ev;
-	inst->data = inst->current = ((uint8_t*)ptr) + 32;
+	inst->data = inst->header = inst->current = ((uint8_t*)ptr) + 32;
 	inst->end = ((uint8_t*)ptr) + size;
 	return inst;
 }
