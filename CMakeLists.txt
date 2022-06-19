@@ -1,5 +1,7 @@
 project(huMessageQueue)
 
+set(CMAKE_C_STANDARD 11)
+
 add_library(tools STATIC src/tools.c include/tools.h)
 target_include_directories(tools PUBLIC include)
 
@@ -12,3 +14,6 @@ target_include_directories(event PUBLIC include)
 target_link_libraries(event PUBLIC tools)
 
 add_library(huMessageQueue SHARED src/huMessageQueue.c include/huMessageQueue.h include/dll.h)
+target_include_directories(huMessageQueue PUBLIC include)
+target_link_libraries(huMessageQueue PUBLIC sharedMemory)
+target_link_libraries(huMessageQueue PUBLIC event)
