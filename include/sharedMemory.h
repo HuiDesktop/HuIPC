@@ -1,6 +1,13 @@
 #include "dll.h"
 #include <stdint.h>
 
+/*
+*          ptr |
+*              v
+* | block size |     block     |
+* |  uint32_t  |    <size>     |
+*/
+
 typedef struct {
 	void* ptr;
 	char name[32];

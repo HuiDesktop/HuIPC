@@ -36,10 +36,13 @@ HI_API hiSharedMemory* hiSharedMemory_create(uint32_t size) {
 	r->file = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, allocateSize, r->name);
 	if (r->file == NULL) goto FAILED;
 	r->ptr = MapViewOfFile(r->file, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, allocateSize);
-	((uint32_t*)r)[0] = size;
+	if (r->ptr == NULL) {
+		goto FAILED;
+	}
+	((uint32_t*)r->ptr)[0] = size;
+	((uint32_t*)r->ptr) += 1;
 	return r;
 FAILED:
-	if (r->ptr != NULL) UnmapViewOfFile(r->ptr);
 	if (r->file != NULL) CloseHandle(r->file);
 	free(r);
 	return NULL;
@@ -82,7 +85,7 @@ FAILED:
 
 HI_API void hiSharedMemory_close(hiSharedMemory* r) {
 	if (r == NULL) return;
-	if (r->ptr != NULL) UnmapViewOfFile(r->ptr);
+	if (r->ptr != NULL) UnmapViewOfFile(((uint32_t*)r->ptr) - 1);
 	if (((hiSharedMemory_win*)r)->file != NULL) CloseHandle(((hiSharedMemory_win*)r)->file);
 	free(r);
 }
