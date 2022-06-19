@@ -17,7 +17,6 @@ HI_API hiSharedMemory* hiSharedMemory_create(uint32_t size) {
 	if (r == NULL) return NULL;
 	ZeroMemory(r, sizeof(hiSharedMemory_win));
 	randStr(r->name, 0, 31);
-	r->name[31] = '\0';
 	r->size = size;
 	r->file = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, allocateSize, r->name);
 	if (r->file == NULL) goto FAILED;
@@ -60,7 +59,8 @@ HI_API hiSharedMemory* hiSharedMemory_open(const char* name) {
 	r->size = size;
 	r->file = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, allocateSize, r->name);
 	if (r->file == NULL) goto FAILED;
-	r->ptr = MapViewOfFile(r->file, FILE_MAP_READ | FILE_MAP_WRITE, 0, 4, allocateSize - 4);
+	r->ptr = MapViewOfFile(r->file, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, allocateSize);
+	((uint32_t*)r->ptr) += 1;
 	return r;
 FAILED:
 	if (r->ptr != NULL) UnmapViewOfFile(r->ptr);
