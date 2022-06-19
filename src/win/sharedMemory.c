@@ -7,6 +7,7 @@
 typedef struct {
 	void* ptr;
 	char name[32];
+	uint32_t size;
 	HANDLE file;
 } hiSharedMemory_win;
 
@@ -31,6 +32,7 @@ HI_API hiSharedMemory* hiSharedMemory_create(uint32_t size) {
 	ZeroMemory(r, sizeof(hiSharedMemory_win));
 	randStr(r->name, 0, 31);
 	r->name[31] = '\0';
+	r->size = size;
 	r->file = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, allocateSize, r->name);
 	if (r->file == NULL) goto FAILED;
 	r->ptr = MapViewOfFile(r->file, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, allocateSize);
@@ -66,6 +68,7 @@ HI_API hiSharedMemory* hiSharedMemory_open(const char* name) {
 	if (r == NULL) return NULL;
 	ZeroMemory(r, sizeof(hiSharedMemory_win));
 	memcpy(r->name, name, sizeof(char) * 32);
+	r->size = size;
 	r->file = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, allocateSize, r->name);
 	if (r->file == NULL) goto FAILED;
 	r->ptr = MapViewOfFile(r->file, FILE_MAP_READ | FILE_MAP_WRITE, 0, 4, allocateSize - 4);

@@ -4,7 +4,7 @@
 typedef struct {
 	void* ptr;
 	char name[32];
-	int innerData[0];
+	uint32_t size;
 } hiSharedMemory;
 
 HI_API hiSharedMemory* hiSharedMemory_create(uint32_t size);
