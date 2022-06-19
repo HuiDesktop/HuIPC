@@ -1,4 +1,5 @@
 #include "dll.h"
+#include "tools.h"
 #include <stdint.h>
 
 /*

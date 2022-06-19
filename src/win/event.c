@@ -1,25 +1,12 @@
 #include <Windows.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <time.h>
 #include "event.h"
+#include "tools.h"
 
 typedef struct {
 	char name[32];
 	HANDLE ev;
 } hiEvent_win;
-
-void randStr(char* c, size_t from, size_t to) {
-	static BOOL is_srand = FALSE;
-	if (!is_srand) {
-		srand((unsigned int)time(0));
-		is_srand = TRUE;
-	}
-	while (from != to) {
-		c[from] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[rand() % 63];
-		from += 1;
-	}
-}
 
 HI_API hiEvent* hiEvent_create() {
 	hiEvent_win* r = malloc(sizeof(hiEvent_win));

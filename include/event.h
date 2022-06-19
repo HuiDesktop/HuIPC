@@ -1,4 +1,5 @@
 #include "dll.h"
+#include "tools.h"
 
 typedef struct {
 	char name[32];

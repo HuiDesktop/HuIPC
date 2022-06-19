@@ -1,6 +1,4 @@
 #include <Windows.h>
-#include <time.h>
-#include <stdlib.h>
 #include <string.h>
 #include "sharedMemory.h"
 
@@ -10,18 +8,6 @@ typedef struct {
 	uint32_t size;
 	HANDLE file;
 } hiSharedMemory_win;
-
-void randStr(char* c, size_t from, size_t to) {
-	static BOOL is_srand = FALSE;
-	if (!is_srand) {
-		srand((unsigned int)time(0));
-		is_srand = TRUE;
-	}
-	while (from != to) {
-		c[from] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"[rand() % 63];
-		from += 1;
-	}
-}
 
 HI_API hiSharedMemory* hiSharedMemory_create(uint32_t size) {
 	if (size > UINT32_MAX - 4) return NULL;
