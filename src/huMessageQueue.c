@@ -102,8 +102,8 @@ HI_API void hiMQ_closeIPC(hiMQInstance* inst) {
 	hiSharedMemory_close(s);
 }
 
-#define VALUE(type, offset) (((type*)(((uint8_t*)inst->current)+(offset)))[0])
-#define CUR(type) VALUE(type, 0)
+#define VALUE(type, base, offset) (((type*)(((uint8_t*)inst->base)+(offset)))[0])
+#define CUR(type, base) VALUE(type, base, 0)
 
 HI_API uint32_t hiMQ_wait(hiMQInstance* inst, uint32_t ms) {
 	return hiEvent_wait(inst->ev, ms);
@@ -111,12 +111,12 @@ HI_API uint32_t hiMQ_wait(hiMQInstance* inst, uint32_t ms) {
 
 // here the return value will >= 4 (has value) or = 0
 HI_API uint32_t hiMQ_get(hiMQInstance* inst) {
-	if (CUR(uint32_t) == 0) {
+	if (CUR(uint32_t, current) == 0) {
 		return 0;
 	}
 	inst->header = inst->current;
 	((uint32_t*)inst->current) += 1;
-	return CUR(uint32_t);
+	return CUR(uint32_t, header);
 }
 
 HI_API uint32_t hiMQ_next(hiMQInstance* inst) {
