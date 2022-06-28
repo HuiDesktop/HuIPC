@@ -4,47 +4,52 @@
 
 #define NEW_OR_FAIL(type, name) type* name = malloc(sizeof(type)); if (name == NULL) goto FAILED; 
 
-hiMQInstance* hiMQ_create1(void* ptr, uint32_t size, const char* name) {
-	if (size <= 32) return NULL;
+uint32_t hiMQ_create1(void* ptr, uint32_t size, hiMQInstance * inst) {
+	if (size <= 32) return 1;
 	hiEvent* ev = hiEvent_create();
-	if (ev == NULL) return NULL;
+	if (ev == NULL) return 1;
 	memcpy(ptr, ev->name, 32);
-	hiMQInstance* inst = malloc(sizeof(hiMQInstance) + 32);
 	if (inst == NULL) {
 		hiEvent_close(ev);
-		return NULL;
+		return 1;
 	}
 	inst->ev = ev;
 	inst->data = inst->header = inst->current = ((uint8_t*)ptr) + 32;
 	inst->end = ((uint8_t*)ptr) + size;
-	memcpy(((uint8_t*)inst) + sizeof(hiMQInstance), name, 32);
-	return inst;
+	return 0;
 }
 
 HI_API hiMQInstance* hiMQ_create(void* ptr, uint32_t size) {
-	if (size <= 32) return NULL;
-	hiEvent* ev = hiEvent_create();
-	if (ev == NULL) return NULL;
-	memcpy(ptr, ev->name, 32);
 	hiMQInstance* inst = malloc(sizeof(hiMQInstance));
-	if (inst == NULL) {
-		hiEvent_close(ev);
+	if (inst == NULL) return NULL;
+
+	if (hiMQ_create1(ptr, size, inst)) {
+		free(inst);
 		return NULL;
 	}
-	inst->ev = ev;
-	inst->data = inst->header = inst->current = ((uint8_t*)ptr) + 32;
-	inst->end = ((uint8_t*)ptr) + size;
 	return inst;
 }
 
 HI_API hiMQInstance* hiMQ_createIPC(uint32_t size) {
-	if (size > UINT32_MAX - sizeof(hiMQMemory)) return NULL;
-	size += sizeof(hiMQMemory);
+	hiMQInstance* inst = malloc(sizeof(hiMQInstance) + sizeof(hiSharedMemory*));
+	if (inst == NULL) return NULL;
+
+	// create shared memory
+	if (size > UINT32_MAX - 32) return NULL; // 32: to save event name
+	size += 32;
 	hiSharedMemory* sm = hiSharedMemory_create(size);
-	if (sm == NULL) return NULL;
-	hiMQInstance* inst = hiMQ_create1(sm->ptr, size, sm->name);
-	if (inst == NULL) {
+	if (sm == NULL) {
+		free(inst);
+		return NULL;
+	}
+
+	// save shared memory accessor
+	((hiSharedMemory**)(inst + 1))[0] = sm;
+
+	// create mq instance
+	if (hiMQ_create1(sm->ptr, size, inst)) {
 		hiSharedMemory_close(sm);
+		free(inst);
 		return NULL;
 	}
 	return inst;
@@ -92,8 +97,9 @@ HI_API void hiMQ_close(hiMQInstance* inst) {
 
 HI_API void hiMQ_closeIPC(hiMQInstance* inst) {
 	if (inst == NULL) return;
-	hiSharedMemory_close(((uint8_t*)inst->data) - 32);
+	hiSharedMemory* s = ((hiSharedMemory**)(inst + 1))[0];
 	hiMQ_close(inst);
+	hiSharedMemory_close(s);
 }
 
 #define VALUE(type, offset) (((type*)(((uint8_t*)inst->current)+(offset)))[0])
@@ -103,6 +109,7 @@ HI_API uint32_t hiMQ_wait(hiMQInstance* inst, uint32_t ms) {
 	return hiEvent_wait(inst->ev, ms);
 }
 
+// here the return value will >= 4 (has value) or = 0
 HI_API uint32_t hiMQ_get(hiMQInstance* inst) {
 	if (CUR(uint32_t) == 0) {
 		return 0;
@@ -122,11 +129,12 @@ HI_API void hiMQ_begin(hiMQInstance* inst) {
 	((uint32_t*)inst->current) += 1;
 }
 
-// size should <= UINT32_MAX - 4
+// size should <= UINT32_MAX - 4, the wrote size will + 4
 HI_API void hiMQ_end(hiMQInstance* inst, uint32_t size, uint32_t setEvent) {
+	// UGLY
 	size += 4;
 	uint32_t* commit_addr = inst->header;
-	((uint8_t*)inst->header) += size;
+	inst->current = ((uint8_t*)inst->header) + size;
 	((uint32_t*)inst->header)[0] = 0;
 	// where is the memory barrier?
 	commit_addr[0] = size;
