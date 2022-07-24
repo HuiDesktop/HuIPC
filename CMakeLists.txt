@@ -17,3 +17,6 @@ add_library(huMessageQueue SHARED src/huMessageQueue.c include/huMessageQueue.h 
 target_include_directories(huMessageQueue PUBLIC include)
 target_link_libraries(huMessageQueue PUBLIC sharedMemory)
 target_link_libraries(huMessageQueue PUBLIC event)
+
+add_executable(tests src/test_cir.c)
+target_link_libraries(tests PRIVATE huMessageQueue)

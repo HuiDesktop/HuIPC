@@ -1,4 +1,5 @@
 #include "huMessageQueue.h"
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -114,6 +115,14 @@ HI_API uint32_t hiMQ_get(hiMQInstance* inst) {
 	if (CUR(uint32_t, current) == 0) {
 		return 0;
 	}
+	if (CUR(uint32_t, current) == 1) {
+		inst->current = inst->data;
+		if (CUR(uint32_t, current) == 1) {
+			assert(0);
+			return 0;
+		}
+		return hiMQ_get(inst);
+	}
 	inst->header = inst->current;
 	((uint32_t*)inst->current) += 1;
 	return CUR(uint32_t, header);
@@ -129,15 +138,30 @@ HI_API void hiMQ_begin(hiMQInstance* inst) {
 	((uint32_t*)inst->current) += 1;
 }
 
+HI_API uint32_t hiMQ_ensure(hiMQInstance* inst, uint32_t size) {
+	if (((uint8_t*)inst->current) + size <= ((uint8_t*)inst->end)) {
+		return 0;
+	}
+	if (inst->data == inst->header || (((uint8_t*)inst->end) - ((uint8_t*)inst->data) - 4) < size) {
+		return 1;
+	}
+	((uint32_t*)inst->data)[0] = 0;
+	// where is the memory barrier?
+	memmove(((uint32_t*)inst->data) + 1, inst->current, ((uint8_t*)inst->current) - ((uint8_t*)inst->header) - 4); // move the data
+	((uint32_t*)inst->header)[0] = 1; // the flag referred to backing to the header
+	inst->current = ((uint8_t*)inst->data) + (((uint8_t*)inst->current) - ((uint8_t*)inst->header));
+	inst->header = inst->data;
+	return 0;
+}
+
 // size should <= UINT32_MAX - 4, the wrote size will + 4
 HI_API void hiMQ_end(hiMQInstance* inst, uint32_t size, uint32_t setEvent) {
 	// UGLY
-	size += 4;
 	uint32_t* commit_addr = inst->header;
-	inst->current = ((uint8_t*)inst->header) + size;
-	((uint32_t*)inst->header)[0] = 0;
+	((uint8_t*)inst->current) += size;
+	((uint32_t*)inst->current)[0] = 0;
 	// where is the memory barrier?
-	commit_addr[0] = size;
+	((uint32_t*)inst->header)[0] = ((uint8_t*)inst->current) - ((uint8_t*)inst->header);
 	if (setEvent) {
 		hiEvent_set(inst->ev);
 	}

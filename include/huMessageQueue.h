@@ -37,4 +37,6 @@ HI_API uint32_t hiMQ_next(hiMQInstance* inst);
 
 HI_API void hiMQ_begin(hiMQInstance* inst);
 
+HI_API uint32_t hiMQ_ensure(hiMQInstance* inst, uint32_t size);
+
 HI_API void hiMQ_end(hiMQInstance* inst, uint32_t size, uint32_t setEvent);
